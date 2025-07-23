@@ -2,19 +2,20 @@
 <html lang="he" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <title>העלאת תמונה</title>
+  <title>ממיר כתב יד לפונט</title>
   <style>
     body {
+      direction: rtl;
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
       background-color: #f5f5f5;
       text-align: center;
+      margin: 0;
+      padding: 0;
     }
 
     .finisher-header {
       width: 100%;
-      height: 300px;
+      height: 250px;
       position: relative;
       color: white;
       display: flex;
@@ -26,84 +27,60 @@
       position: relative;
       z-index: 2;
       font-size: 2.5em;
-      margin-top: 0;
+      margin: 0;
     }
 
-    #upload-form {
+    form {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      display: inline-block;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
       margin-top: 30px;
     }
 
-    #status {
-      color: #333;
-      font-size: 1.2em;
-      margin-top: 10px;
+    input[type="file"] {
+      margin: 10px 0;
     }
 
-    .error {
-      color: red;
+    #status {
+      margin-top: 20px;
+      font-size: 1.1em;
+      color: #333;
     }
 
     #download-btn {
-      display: none;
-      margin-top: 20px;
+      display: inline-block;
+      margin-top: 30px;
+      text-decoration: none;
+      background: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      font-size: 1em;
+      pointer-events: none;
+      opacity: 0.5;
     }
   </style>
 </head>
 <body>
 
-  <!-- רקע מונפש -->
   <div class="header finisher-header">
-    <h1>שליחת תמונה</h1>
+    <h1>העלאת כתב יד</h1>
   </div>
 
-  <!-- טופס -->
   <form id="upload-form" enctype="multipart/form-data">
-    <input type="file" id="file" name="file" required>
+    <input type="file" id="file" name="file" accept="image/*" required><br>
     <button type="submit">שלח תמונה</button>
   </form>
-  <p id="status"></p>
 
-  <!-- כפתור הורדה -->
-  <a id="download-btn" href="/download-font" download>
-    <button>⬇ הורד את הפונט</button>
+  <div id="status"></div>
+
+  <a id="download-btn" href="/download-font" download="my_font.ttf">
+    ⬇ הורד את הפונט
   </a>
 
-  <!-- סקריפט של הטופס -->
-  <script>
-    document.getElementById('upload-form').addEventListener('submit', function (e) {
-      e.preventDefault();
-      const fileInput = document.getElementById('file');
-      const status = document.getElementById('status');
-      const downloadBtn = document.getElementById('download-btn');
-
-      if (!fileInput.files.length) {
-        status.innerText = '⚠ לא נבחר קובץ';
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('file', fileInput.files[0]);
-
-      fetch('/upload', {
-        method: 'POST',
-        body: formData
-      })
-      .then(res => {
-        if (!res.ok) throw new Error("Server Error");
-        return res.json();
-      })
-      .then(data => {
-        status.innerText = data.message;
-        downloadBtn.style.display = 'inline-block';
-      })
-      .catch(err => {
-        status.innerText = '⚠ שגיאה בהעלאה או ביצירת פונט';
-        console.error(err);
-      });
-    });
-  </script>
-
-  <!-- סקריפט של האנימציה -->
+  <!-- אנימציית רקע -->
   <script src="/static/finisher-header.es5.min.js" type="text/javascript"></script>
   <script type="text/javascript">
     new FinisherHeader({
@@ -119,11 +96,7 @@
       },
       "colors": {
         "background": "#9138e5",
-        "particles": [
-          "#6bd6ff",
-          "#ffcb57",
-          "#ff333d"
-        ]
+        "particles": ["#6bd6ff", "#ffcb57", "#ff333d"]
       },
       "blending": "overlay",
       "opacity": {
@@ -131,9 +104,49 @@
         "edge": 0.1
       },
       "skew": -2,
-      "shapes": [ "c" ]
+      "shapes": ["c"]
     });
   </script>
 
+  <!-- שליחת קובץ והפעלת כפתור הורדה -->
+  <script>
+    const form = document.getElementById('upload-form');
+    const status = document.getElementById('status');
+    const downloadBtn = document.getElementById('download-btn');
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      status.textContent = '⏳ מעלה ומייצר פונט...';
+      downloadBtn.style.pointerEvents = 'none';
+      downloadBtn.style.opacity = '0.5';
+
+      const formData = new FormData(form);
+      try {
+        const res = await fetch('/upload', {
+          method: 'POST',
+          body: formData
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          status.textContent = '❌ שגיאה בתהליך: ' + text;
+        } else {
+          let msg = '';
+          try {
+            const data = await res.json();
+            msg = data.message || '✔️ הפונט נוצר בהצלחה';
+          } catch {
+            msg = '✔️ הפונט נוצר';
+          }
+          status.textContent = msg;
+
+          downloadBtn.style.pointerEvents = 'auto';
+          downloadBtn.style.opacity = '1';
+        }
+      } catch (err) {
+        status.textContent = '❌ שגיאה כללית: ' + err.message;
+      }
+    });
+  </script>
 </body>
 </html>
+
